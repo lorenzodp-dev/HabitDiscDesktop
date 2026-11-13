@@ -1,0 +1,20 @@
+# ---------- Build e Visual Studio ----------
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user
+*.suo
+*.rsuser
+*.userprefs
+
+# ---------- Configuração local ----------
+# Contém a senha do MySQL (RNF03). Cada membro copia o
+# appsettings.example.json para appsettings.json e preenche a própria senha.
+HabitDisc/appsettings.json
+
+# ---------- Material local ----------
+HabitDisc/PDF_APOIO_ORGANIZE-SE.pdf
+
+# ---------- Sistema ----------
+Thumbs.db
+Desktop.ini
