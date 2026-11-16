@@ -1,5 +1,7 @@
-﻿using System.Drawing;
+﻿using System;
+using System.Drawing;
 using System.Windows.Forms;
+using HabitDisc.Helpers;
 
 namespace HabitDisc.Telas
 {
@@ -7,18 +9,30 @@ namespace HabitDisc.Telas
     // Quando a tela real existir, basta trocá-la no MainForm e apagar este arquivo.
     public class TelaPlaceholderControl : UserControl
     {
+        private readonly Label _lbl = new Label();
+
         public TelaPlaceholderControl(string titulo)
         {
-            BackColor = Color.FromArgb(246, 244, 236);
+            _lbl.Dock = DockStyle.Fill;
+            _lbl.Text = titulo + "\r\n(em construção)";
+            _lbl.TextAlign = ContentAlignment.MiddleCenter;
+            Controls.Add(_lbl);
 
-            Label lbl = new Label();
-            lbl.Dock = DockStyle.Fill;
-            lbl.Text = titulo + "\r\n(em construção)";
-            lbl.Font = new Font("Newsreader", 20f, FontStyle.Regular);
-            lbl.ForeColor = Color.FromArgb(35, 77, 51);
-            lbl.TextAlign = ContentAlignment.MiddleCenter;
+            AplicarTema();
+            Tema.Alterado += Tema_Alterado;
+            Disposed += delegate { Tema.Alterado -= Tema_Alterado; };
+        }
 
-            Controls.Add(lbl);
+        private void Tema_Alterado(object? sender, EventArgs e)
+        {
+            AplicarTema();
+        }
+
+        private void AplicarTema()
+        {
+            BackColor = Tema.Fundo;
+            _lbl.Font = Tema.Fonte(20f);
+            _lbl.ForeColor = Tema.Titulo;
         }
     }
 }

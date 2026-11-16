@@ -24,6 +24,7 @@
         private void InitializeComponent()
         {
             pnlNavegacao = new Panel();
+            btnConfiguracoes = new FontAwesome.Sharp.IconButton();
             btnCategorias = new FontAwesome.Sharp.IconButton();
             btnHumor = new FontAwesome.Sharp.IconButton();
             btnEstatisticas = new FontAwesome.Sharp.IconButton();
@@ -37,6 +38,7 @@
             // pnlNavegacao
             //
             pnlNavegacao.BackColor = Color.FromArgb(35, 77, 51);
+            pnlNavegacao.Controls.Add(btnConfiguracoes);
             pnlNavegacao.Controls.Add(btnCategorias);
             pnlNavegacao.Controls.Add(btnHumor);
             pnlNavegacao.Controls.Add(btnEstatisticas);
@@ -48,6 +50,32 @@
             pnlNavegacao.Name = "pnlNavegacao";
             pnlNavegacao.Size = new Size(244, 648);
             pnlNavegacao.TabIndex = 1;
+            //
+            // btnConfiguracoes
+            //
+            btnConfiguracoes.BackColor = Color.FromArgb(35, 77, 51);
+            btnConfiguracoes.Cursor = Cursors.Hand;
+            btnConfiguracoes.Dock = DockStyle.Bottom;
+            btnConfiguracoes.FlatAppearance.BorderSize = 0;
+            btnConfiguracoes.FlatAppearance.MouseOverBackColor = Color.FromArgb(47, 107, 69);
+            btnConfiguracoes.FlatStyle = FlatStyle.Flat;
+            btnConfiguracoes.Font = new Font("Microsoft Sans Serif", 13F, FontStyle.Bold);
+            btnConfiguracoes.ForeColor = Color.White;
+            btnConfiguracoes.IconChar = FontAwesome.Sharp.IconChar.Gear;
+            btnConfiguracoes.IconColor = Color.White;
+            btnConfiguracoes.IconFont = FontAwesome.Sharp.IconFont.Auto;
+            btnConfiguracoes.IconSize = 28;
+            btnConfiguracoes.ImageAlign = ContentAlignment.MiddleLeft;
+            btnConfiguracoes.Location = new Point(0, 600);
+            btnConfiguracoes.Name = "btnConfiguracoes";
+            btnConfiguracoes.Padding = new Padding(22, 0, 0, 0);
+            btnConfiguracoes.Size = new Size(244, 48);
+            btnConfiguracoes.TabIndex = 6;
+            btnConfiguracoes.Text = "Configurações";
+            btnConfiguracoes.TextAlign = ContentAlignment.MiddleLeft;
+            btnConfiguracoes.TextImageRelation = TextImageRelation.ImageBeforeText;
+            btnConfiguracoes.UseVisualStyleBackColor = false;
+            btnConfiguracoes.Click += btnConfiguracoes_Click;
             //
             // btnCategorias
             //
@@ -225,6 +253,7 @@
         private FontAwesome.Sharp.IconButton btnEstatisticas;
         private FontAwesome.Sharp.IconButton btnHumor;
         private FontAwesome.Sharp.IconButton btnCategorias;
+        private FontAwesome.Sharp.IconButton btnConfiguracoes;
         private System.Windows.Forms.Panel pnlConteudo;
     }
 }
