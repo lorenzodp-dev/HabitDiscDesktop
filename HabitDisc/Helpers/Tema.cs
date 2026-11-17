@@ -9,8 +9,9 @@ namespace HabitDisc.Helpers
     //
     // Como funciona:
     // 1. Ao abrir o app, o Program chama Tema.Aplicar(preferências salvas).
-    // 2. Cada tela tem um método AplicarTema() que pinta seus controles com as cores daqui,
-    //    e se inscreve no evento Tema.Alterado.
+    // 2. Cada tela herda de TelaBase, que já se inscreve no evento Tema.Alterado;
+    //    a tela só escreve o seu AplicarTema() (override), que pinta os controles
+    //    com as cores daqui. (O MainForm, por ser um Form, se inscreve sozinho.)
     // 3. Quando o usuário muda algo em Configurações, Tema.Aplicar() troca os valores e
     //    dispara Alterado: todas as telas se repintam na hora.
     public static class Tema

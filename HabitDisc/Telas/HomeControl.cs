@@ -1,38 +1,35 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Globalization;
+using System.Linq;
 using System.Windows.Forms;
 using HabitDisc.Helpers;
+using HabitDisc.Services;
 
 namespace HabitDisc.Telas
 {
-    public partial class HomeControl : UserControl
+    // Tela inicial (UC02): os hábitos do dia, o check-in de cada um e o
+    // progresso do dia. Os dados vêm do banco pelos Services.
+    public partial class HomeControl : TelaBase
     {
-        // Guarda os CheckBox das linhas atuais, para calcular o progresso
-        private readonly List<CheckBox> _checks = new List<CheckBox>();
+        private readonly HabitoService _habitoService = new HabitoService();
+        private readonly CheckinService _checkinService = new CheckinService();
+
         private double _fracaoProgresso = 0;
 
         // Hábitos exibidos agora (null até a tela ser carregada pela primeira vez).
         // Ficam guardados para remontar as linhas quando o tema muda, sem ir ao banco.
-        private List<HabitoDoDia>? _habitosAtuais;
+        private List<HabitoResumo>? _habitosAtuais;
+
+        // true enquanto um check-in que falhou é desfeito na tela
+        // (evita que o CheckedChanged tente gravar de novo)
+        private bool _desfazendo;
 
         public HomeControl()
         {
             InitializeComponent();
-
-            // A lista só rola na vertical: as linhas sempre têm a largura do painel.
-            // (Truque do WinForms: com AutoScroll ligado não dá para desligar só a
-            // barra horizontal; é preciso desligar, configurar e ligar de novo.)
-            flpHabitos.AutoScroll = false;
-            flpHabitos.HorizontalScroll.Enabled = false;
-            flpHabitos.HorizontalScroll.Visible = false;
-            flpHabitos.HorizontalScroll.Maximum = 0;
-            flpHabitos.AutoScroll = true;
-
+            ListaVertical.Configurar(flpHabitos);
             AplicarTema();
-            Tema.Alterado += Tema_Alterado;
-            Disposed += delegate { Tema.Alterado -= Tema_Alterado; };
         }
 
         // ---------- Eventos ----------
@@ -47,16 +44,6 @@ namespace HabitDisc.Telas
             }
         }
 
-        private void Tema_Alterado(object? sender, EventArgs e)
-        {
-            AplicarTema();
-        }
-
-        private void flpHabitos_ClientSizeChanged(object sender, EventArgs e)
-        {
-            AjustarLarguraLinhas();
-        }
-
         private void pnlBarraFundo_Resize(object sender, EventArgs e)
         {
             AtualizarBarra();
@@ -68,7 +55,7 @@ namespace HabitDisc.Telas
         // As alturas são calculadas pela altura real da fonte (Font.Height), e não
         // fixas em pixels: assim o texto cabe em qualquer tamanho de fonte e também
         // quando o Windows está com escala de tela maior que 100%.
-        private void AplicarTema()
+        protected override void AplicarTema()
         {
             BackColor = Tema.Fundo;
 
@@ -92,6 +79,8 @@ namespace HabitDisc.Telas
             lblProgresso.ForeColor = Tema.TextoSobreMenu;
             lblProgresso.Location = new Point(22, Tema.Escalar(16));
             lblProgresso.Height = lblProgresso.Font.Height + 6;
+            // Se não couber, termina com "..." em vez de cortar a frase no meio
+            lblProgresso.AutoEllipsis = true;
 
             lblPercentual.Font = Tema.Fonte(22f, FontStyle.Bold);
             lblPercentual.ForeColor = Tema.Destaque;
@@ -134,35 +123,22 @@ namespace HabitDisc.Telas
 
         private void AtualizarTela()
         {
-            lblData.Text = FormatarData(DateTime.Now);
+            lblData.Text = Textos.DataPorExtenso(DateTime.Now);
 
-            _habitosAtuais = ObterHabitosDoDia();
+            // Todos os hábitos são diários: a lista do dia é a lista de todos
+            _habitosAtuais = _habitoService.Listar();
             MontarLinhas();
-        }
-
-        // TODO: trocar pelos dados reais, vindos do CheckinService
-        // (hábitos do dia + se já têm check-in hoje + streak atual).
-        private List<HabitoDoDia> ObterHabitosDoDia()
-        {
-            List<HabitoDoDia> lista = new List<HabitoDoDia>();
-            lista.Add(new HabitoDoDia { Id = 1, Nome = "Beber 2L de água", Categoria = "Saúde", Streak = 12, Concluido = true, Cor = Color.FromArgb(70, 140, 200) });
-            lista.Add(new HabitoDoDia { Id = 2, Nome = "Ler 20 páginas", Categoria = "Aprendizado", Streak = 5, Concluido = false, Cor = Color.FromArgb(150, 110, 190) });
-            lista.Add(new HabitoDoDia { Id = 3, Nome = "Treinar", Categoria = "Saúde", Streak = 3, Concluido = true, Cor = Color.FromArgb(70, 140, 200) });
-            lista.Add(new HabitoDoDia { Id = 4, Nome = "Revisar as finanças", Categoria = "Finanças", Streak = 0, Concluido = false, Cor = Color.FromArgb(220, 160, 60) });
-            lista.Add(new HabitoDoDia { Id = 5, Nome = "Ligar para a família", Categoria = "Relacionamentos", Streak = 1, Concluido = false, Cor = Color.FromArgb(210, 100, 110) });
-            lista.Add(new HabitoDoDia { Id = 6, Nome = "Estudar C#", Categoria = "Aprendizado", Streak = 21, Concluido = false, Cor = Color.FromArgb(150, 110, 190) });
-            return lista;
         }
 
         // Recria as linhas a partir de _habitosAtuais (sem ir ao banco)
         private void MontarLinhas()
         {
-            List<HabitoDoDia> habitos = _habitosAtuais ?? new List<HabitoDoDia>();
+            List<HabitoResumo> habitos = _habitosAtuais ?? new List<HabitoResumo>();
 
-            LimparLinhas();
+            ListaVertical.Limpar(flpHabitos);
 
             flpHabitos.SuspendLayout();
-            foreach (HabitoDoDia h in habitos)
+            foreach (HabitoResumo h in habitos)
             {
                 flpHabitos.Controls.Add(CriarLinha(h));
             }
@@ -172,25 +148,12 @@ namespace HabitDisc.Telas
             flpHabitos.Visible = !vazio;
             lblVazio.Visible = vazio;
 
-            AjustarLarguraLinhas();
             AtualizarProgresso();
-        }
-
-        // Remove E descarta as linhas antigas (RemoveAt sozinho não libera da memória)
-        private void LimparLinhas()
-        {
-            _checks.Clear();
-            while (flpHabitos.Controls.Count > 0)
-            {
-                Control c = flpHabitos.Controls[0];
-                flpHabitos.Controls.RemoveAt(0);
-                c.Dispose();
-            }
         }
 
         // ---------- Montagem de cada linha ----------
 
-        private Panel CriarLinha(HabitoDoDia h)
+        private Panel CriarLinha(HabitoResumo h)
         {
             Font fonteNome = FonteNome(h.Concluido);
             Font fonteDetalhe = Tema.Fonte(11f);
@@ -212,7 +175,7 @@ namespace HabitDisc.Telas
             Panel faixa = new Panel();
             faixa.Dock = DockStyle.Left;
             faixa.Width = 6;
-            faixa.BackColor = h.Cor;
+            faixa.BackColor = CorHelper.HexParaCor(h.Cor);
 
             CheckBox chk = new CheckBox();
             chk.AutoSize = false;
@@ -239,36 +202,53 @@ namespace HabitDisc.Telas
             lblDetalhe.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             lblDetalhe.Font = fonteDetalhe;
             lblDetalhe.ForeColor = Tema.Texto;
-            lblDetalhe.Text = h.Categoria + "  ·  " + TextoStreak(h.Streak);
+            lblDetalhe.Text = TextoDetalhe(h);
 
             linha.Controls.Add(faixa);
             linha.Controls.Add(chk);
             linha.Controls.Add(lblNome);
             linha.Controls.Add(lblDetalhe);
 
-            _checks.Add(chk);
-
-            // Clicar em qualquer parte da linha também marca/desmarca
+            // Clicar em qualquer parte da linha também marca/desmarca (RNF02: 1 clique)
             EventHandler alternar = delegate { chk.Checked = !chk.Checked; };
             linha.Click += alternar;
             lblNome.Click += alternar;
             lblDetalhe.Click += alternar;
 
-            chk.CheckedChanged += delegate { AoAlterarCheckin(chk, lblNome, h); };
+            chk.CheckedChanged += delegate { AoAlterarCheckin(chk, lblNome, lblDetalhe, h); };
 
             return linha;
         }
 
-        private void AoAlterarCheckin(CheckBox chk, Label lblNome, HabitoDoDia h)
+        private void AoAlterarCheckin(CheckBox chk, Label lblNome, Label lblDetalhe, HabitoResumo h)
         {
-            // Guarda o novo estado, para a linha continuar certa se o tema mudar
+            if (_desfazendo)
+            {
+                return;
+            }
+
+            try
+            {
+                // Grava (ou desmarca) o check-in de hoje e recebe o streak atualizado
+                h.Streak = _checkinService.DefinirCheckin(h.Id, chk.Checked);
+            }
+            catch (Exception ex)
+            {
+                // Não gravou (ex.: banco fora do ar): volta a caixinha como estava,
+                // para a tela não mostrar algo que não está salvo
+                _desfazendo = true;
+                chk.Checked = !chk.Checked;
+                _desfazendo = false;
+
+                Mensagem.ErroInesperado(ex);
+                return;
+            }
+
             h.Concluido = chk.Checked;
 
-            lblNome.Font = FonteNome(chk.Checked);
-            lblNome.ForeColor = CorNome(chk.Checked);
-
-            // TODO: chamar o CheckinService para gravar (ou desmarcar) o check-in
-            // do hábito h.Id na data de hoje, e atualizar o streak.
+            lblNome.Font = FonteNome(h.Concluido);
+            lblNome.ForeColor = CorNome(h.Concluido);
+            lblDetalhe.Text = TextoDetalhe(h);
 
             AtualizarProgresso();
         }
@@ -286,16 +266,18 @@ namespace HabitDisc.Telas
             return concluido ? Tema.TextoSuave : Tema.Titulo;
         }
 
+        private static string TextoDetalhe(HabitoResumo h)
+        {
+            return h.Categoria + "  ·  " + Textos.Streak(h.Streak);
+        }
+
         // ---------- Progresso ----------
 
         private void AtualizarProgresso()
         {
-            int total = _checks.Count;
-            int feitos = 0;
-            foreach (CheckBox c in _checks)
-            {
-                if (c.Checked) feitos++;
-            }
+            List<HabitoResumo> habitos = _habitosAtuais ?? new List<HabitoResumo>();
+            int total = habitos.Count;
+            int feitos = habitos.Count(h => h.Concluido);
 
             if (total == 0)
             {
@@ -317,41 +299,6 @@ namespace HabitDisc.Telas
         private void AtualizarBarra()
         {
             pnlBarraPreenchida.Width = (int)(pnlBarraFundo.Width * _fracaoProgresso);
-        }
-
-        // ---------- Auxiliares ----------
-
-        private void AjustarLarguraLinhas()
-        {
-            foreach (Control c in flpHabitos.Controls)
-            {
-                c.Width = flpHabitos.ClientSize.Width - c.Margin.Horizontal;
-            }
-        }
-
-        private static string TextoStreak(int dias)
-        {
-            if (dias <= 0) return "sem sequência";
-            if (dias == 1) return "1 dia seguido";
-            return dias + " dias seguidos";
-        }
-
-        private static string FormatarData(DateTime data)
-        {
-            CultureInfo pt = new CultureInfo("pt-BR");
-            string texto = data.ToString("dddd, d 'de' MMMM", pt);
-            return char.ToUpper(texto[0], pt) + texto.Substring(1);
-        }
-
-        // Dados de uma linha da lista (provisório, enquanto a Home não usa o CheckinService)
-        private class HabitoDoDia
-        {
-            public long Id { get; set; }
-            public string Nome { get; set; } = string.Empty;
-            public string Categoria { get; set; } = string.Empty;
-            public int Streak { get; set; }
-            public bool Concluido { get; set; }
-            public Color Cor { get; set; }
         }
     }
 }

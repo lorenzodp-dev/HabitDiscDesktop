@@ -10,7 +10,7 @@ namespace HabitDisc.Telas
     // Configurações de aparência: cor do tema, tamanho da fonte e modo escuro.
     // Cada mudança vale na hora (todas as telas se repintam pelo evento Tema.Alterado)
     // e é salva em %AppData%\HabitDisc\preferencias.json pelo PreferenciasService.
-    public partial class ConfiguracoesControl : UserControl
+    public partial class ConfiguracoesControl : TelaBase
     {
         private readonly PreferenciasService _service = new PreferenciasService();
 
@@ -25,8 +25,6 @@ namespace HabitDisc.Telas
             CriarBotoesPaleta();
 
             AplicarTema();
-            Tema.Alterado += Tema_Alterado;
-            Disposed += delegate { Tema.Alterado -= Tema_Alterado; };
         }
 
         // ---------- Eventos ----------
@@ -37,11 +35,6 @@ namespace HabitDisc.Telas
             {
                 MostrarValoresAtuais();
             }
-        }
-
-        private void Tema_Alterado(object? sender, EventArgs e)
-        {
-            AplicarTema();
         }
 
         private void BotaoPaleta_Click(object? sender, EventArgs e)
@@ -144,7 +137,7 @@ namespace HabitDisc.Telas
 
         // ---------- Tema ----------
 
-        private void AplicarTema()
+        protected override void AplicarTema()
         {
             BackColor = Tema.Fundo;
 

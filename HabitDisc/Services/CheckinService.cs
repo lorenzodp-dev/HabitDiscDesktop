@@ -17,58 +17,6 @@ namespace HabitDisc.Services
     // sempre que alguém precisa dele.
     public class CheckinService
     {
-        // ---------- Home (UC02) ----------
-
-        // Todos os hábitos (todos são diários), com o status de hoje e o streak atual.
-        public List<HabitoDoDia> ObterHabitosDoDia()
-        {
-            DateOnly hoje = Hoje();
-
-            using HabitDiscContext ctx = new HabitDiscContext();
-
-            List<Habito> habitos = ctx.Habitos
-                .AsNoTracking()
-                .Include(h => h.Categoria)
-                .OrderBy(h => h.Nome)
-                .ToList();
-
-            // Uma única consulta para todos os hábitos (em vez de uma por hábito).
-            // Traz só as duas colunas necessárias.
-            var concluidos = ctx.Checkins
-                .AsNoTracking()
-                .Where(c => c.Concluido && c.Data <= hoje)
-                .Select(c => new { c.IdHabito, c.Data })
-                .ToList();
-
-            Dictionary<long, List<DateOnly>> datasPorHabito = concluidos
-                .GroupBy(c => c.IdHabito)
-                .ToDictionary(g => g.Key, g => g.Select(c => c.Data).ToList());
-
-            List<HabitoDoDia> lista = new List<HabitoDoDia>();
-
-            foreach (Habito h in habitos)
-            {
-                List<DateOnly> datas;
-                if (!datasPorHabito.TryGetValue(h.IdHabito, out datas!))
-                {
-                    datas = new List<DateOnly>();
-                }
-
-                lista.Add(new HabitoDoDia
-                {
-                    Id = h.IdHabito,
-                    Nome = h.Nome,
-                    Icone = h.Icone,
-                    Cor = h.Cor,
-                    Categoria = h.Categoria?.Nome ?? string.Empty,
-                    Concluido = datas.Contains(hoje),
-                    Streak = CalcularStreakAtual(datas, hoje)
-                });
-            }
-
-            return lista;
-        }
-
         // Marca (concluido = true) ou desmarca (false) o check-in de HOJE.
         // Desmarcar não apaga a linha: só muda "concluido" (docs 5.2.3),
         // e o trigger de UPDATE registra a mudança no log (RF08).
@@ -104,18 +52,6 @@ namespace HabitDisc.Services
             }
 
             return CalcularStreakAtual(ObterDatasConcluidas(ctx, idHabito), hoje);
-        }
-
-        // ---------- Detalhes do hábito (UC03 / UC08) ----------
-
-        // Streak atual e melhor recorde de um hábito
-        public (int Atual, int Recorde) ObterStreak(long idHabito)
-        {
-            using HabitDiscContext ctx = new HabitDiscContext();
-
-            List<DateOnly> datas = ObterDatasConcluidas(ctx, idHabito);
-
-            return (CalcularStreakAtual(datas, Hoje()), CalcularRecorde(datas));
         }
 
         // ---------- Cálculos (não acessam o banco) ----------
@@ -164,10 +100,10 @@ namespace HabitDisc.Services
             return melhor;
         }
 
-        // ---------- Auxiliares ----------
+        // ---------- Auxiliares (também usados pelo HabitoService) ----------
 
         // O índice único (id_habito, data) atende exatamente esta consulta (RNF05)
-        private static List<DateOnly> ObterDatasConcluidas(HabitDiscContext ctx, long idHabito)
+        internal static List<DateOnly> ObterDatasConcluidas(HabitDiscContext ctx, long idHabito)
         {
             DateOnly hoje = Hoje();
 
@@ -179,7 +115,7 @@ namespace HabitDisc.Services
         }
 
         // "Hoje" vem do relógio do Windows na hora do cálculo; nada é guardado
-        private static DateOnly Hoje()
+        internal static DateOnly Hoje()
         {
             return DateOnly.FromDateTime(DateTime.Today);
         }

@@ -154,7 +154,6 @@
             this.flpHabitos.Size = new System.Drawing.Size(662, 352);
             this.flpHabitos.TabIndex = 3;
             this.flpHabitos.WrapContents = false;
-            this.flpHabitos.ClientSizeChanged += new System.EventHandler(this.flpHabitos_ClientSizeChanged);
             // 
             // lblVazio
             // 

@@ -11,11 +11,10 @@ namespace HabitDisc.Forms
     {
         // Telas criadas uma única vez e reaproveitadas
         private readonly HomeControl _home = new HomeControl();
-        // TODO: trocar cada placeholder pela tela real quando ela existir
-        private readonly UserControl _habitos = new TelaPlaceholderControl("Hábitos");
-        private readonly UserControl _estatisticas = new TelaPlaceholderControl("Estatísticas");
-        private readonly UserControl _humor = new TelaPlaceholderControl("Humor");
-        private readonly UserControl _categorias = new TelaPlaceholderControl("Categorias");
+        private readonly HabitosControl _habitos = new HabitosControl();
+        private readonly EstatisticasControl _estatisticas = new EstatisticasControl();
+        private readonly HumorControl _humor = new HumorControl();
+        private readonly CategoriasControl _categorias = new CategoriasControl();
         private readonly ConfiguracoesControl _configuracoes = new ConfiguracoesControl();
 
         // Qual tela está sendo exibida agora (null até a primeira troca)
